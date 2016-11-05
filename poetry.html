@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<meta charset="UTF-8"> 
+<head>
+<body>
+
+
+<p id="poetry"></p>
+
+<button type="button" onclick="loadDoc()">Poem Me!</button>
+
+<script>
+
+var debate='';
+
+function loadDoc() {
+    var xhttp = new XMLHttpRequest();// 
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            console.log(this.responseText);
+            debate=this.responseText;
+
+
+//-----------------------------------INSERT REPLIT SERIES HERE----------------------------------------------------------------------
+function strArr(str){
+	// first step is to capture everything that is punctuation mostly . , ; etc. and replace with ''
+	// the variation being to leave the possessive and word-hyphenated forms
+	
+	regex = /\.|\:|\;|\,|\?|\(|\)|\—|\“|\”|\$|\d/g; // this is all the punctation formated;
+		var nonPstr = str.replace(regex, '');
+		//console.log(nonPstr);// works, clean but with 's, etc.
+		
+	//common variants
+	var regll=new RegExp(/(?:’ll)/g); //I'll to I will
+	var regm=new RegExp(/(?:’m)/g); //I'm to I am
+	var regwt=new RegExp(/(?:won’t)/g); // won't to will not
+	var regnt=new RegExp(/(?:n’t)/g); // don't to do not, others?
+	var regre= new RegExp(/(?:’re)/g); //'re to are
+	var regve= new RegExp(/(?:’ve)/g); //'ve to have
+		var nonPst = nonPstr.replace(regll, ' will').replace(regm, ' am').replace(regwt, 'will not').replace(regnt, ' not').replace(regre, ' are').replace(regve, ' have');
+		//console.log(nonPst);
+		
+	// 's is tricky... posessive - leave alone vs. it's, It's, what's, What's,That's, that's	she's you've
+	var regI=new RegExp(/(?:it’s)|(?:It’s)/g);
+	var regW=new RegExp(/(?:what’s)|(?:What’s)/g);
+	var regT=new RegExp(/(?:that’s)|(?:That’s)/g);
+	var regTh=new RegExp(/(?:there’s)|(?:There’s)/g);
+	var regSh=new RegExp(/(?:she’s)|(?:She’s)/g);
+		var newStr = nonPst.replace(regI, 'it is').replace(regW, 'what is').replace(regT, 'that is').replace(regTh, 'there is').replace(regSh, 'she is');
+		//console.log(newStr); // CLEAN (minus 's possessive)... ready to split!
+		
+	var words=[];
+	newStr.split(' ').forEach(function(word){
+		words.push(word.trim()); // eliminate white space
+	});
+	
+	return words;
+	
+}
+
+//--------------------------- TO MARKOV---------------------------------------------------
+
+function markov(arr){
+	var unique=[];
+	var chain={};// this is easier to randomize later if the structure is [{a:[b,c]},{}] instead of {a:[b,c], b:...} in terms of Math.random.
+	var pairs=[];
+	
+	arr.forEach(function(entry,i){
+		
+		if (unique.indexOf(entry) < 0){
+			unique.push(entry);
+				}
+			}); // great so we have the unique list
+	
+	console.log('initial array: '+arr.length+', unique array: '+unique.length);
+	
+	//so... we could loop through the unique entries, their index value and push the words that follow them (i+1) into an array
+	unique.forEach(function(uniq){
+		var term=[]; // sets their particular array
+
+
+		var idx = arr.indexOf(uniq);
+		while (idx != -1) {
+		  term.push(arr[idx+1]);
+		  idx = arr.indexOf(uniq, idx + 1); // iterate up to test futher up the array
+		} // this should push all those values into the term array
+		
+		// term seems to be holding alot of repeat terms... so run another reduction to find the unique terms that follow....
+		var term2=[];
+		
+			term.forEach(function(thing){
+							
+				if (term2.indexOf(thing) < 0 && thing !==''){ // catch any strays
+					term2.push(thing);
+				}
+			});
+		
+		chain[uniq]=term2;
+		pairs.push(chain);// so index to reach object.. then grab key
+		//chain[uniq]=term; // to see non-cleaned version (should really create a counter, in another version)
+		term2=[];
+		chain={};// clear that out... to restart the action
+	});
+	
+	//console.log(pairs); 
+	return(pairs); 
+	
+}
+
+//---------------------------------------------COMPOSE LINES---------------------------------------------
+
+function writeLine(objArr, n, l){
+	//var lineLength=Math.floor((Math.random()*n)); don't need to randomize... just pass it something
+	var linesHold=''; //array to hold lines... push to after concatenating...
+
+	function helper(inh, cnt, lineStr){ //inherited from last round
+		var keyWord=String(Object.keys(inh)[0]);//Object.keys()=array... so return initial value!
+
+		
+		if (cnt===n){ //base-case, reached the full line length
+			return lineStr; // returned full concat to writeLine
+		} else {
+			if (inh[keyWord].length === 1){ //single entry
+					if (cnt===1){ // first round only.
+						lineStr=keyWord+" "+inh[keyWord][0];
+					} else { //all other iterations
+						lineStr+=" "+inh[keyWord][0];
+					}// so string is updated/concatenated
+				cnt++; // up the counter for n comparison
+				var inhNew=objArr.filter(function(eachObj){
+					return Object.keys(eachObj)[0]===inh[keyWord][0];
+					});
+				return helper(inhNew[0], cnt, lineStr);
+
+			} else if (inh[keyWord].length > 1){ //multiples... pick random
+				var ran=Math.floor(Math.random()*inh[keyWord].length);
+					if (cnt===1){ // first round only
+						lineStr=keyWord+" "+inh[keyWord][ran];
+					} else { //all other iterations
+						lineStr+=" "+inh[keyWord][ran];
+					}// so string is updated/concatenated
+				cnt++; // up the counter for n comparison
+				var inhNew2=objArr.filter(function(eachObj){
+					return Object.keys(eachObj)[0]===inh[keyWord][ran];
+					});
+				return helper(inhNew2[0], cnt, lineStr);
+
+			} // all other cases... do nothing... use the counter to force another round
+		} //closes out the recursive else....
+	
+	} // closes helper function
+	
+	//how many lines of poem do we want?
+	
+	for (var i=0;i<l;i++){
+		var start=objArr[(Math.floor(Math.random()*objArr.length))]; // could do this in helper... but the | is sticky... work out later
+		//console.log(start);
+		linesHold+=(helper(start,1,'')+"<br>");	
+	}
+
+	console.log(linesHold);
+	return linesHold;
+	
+}
+
+//----------------------------NOW CALL TO HTML------------------------------------------------
+
+
+
+
+
+
+
+
+            document.getElementById("poetry").innerHTML = writeLine(markov(strArr(debate)), 6, 8);//functions execute here;
+
+        } else {
+        	console.log (this.status);
+        }
+    };
+    xhttp.open("GET", "http://www.siteations.com/files/Debate_transcript.txt", true);
+    xhttp.send();
+}
+
+//loadDoc();
+//console.log(debate);
+
+</script>
+
+</body>
+</html>
