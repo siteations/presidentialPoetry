@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<meta charset="UTF-8"> 
+<head>
+<body>
+
+<p><span class="opt"> Generate Poetry with:</span></p>
+<form><span class="opt2">
+    <input type="radio" name="s1" value="punc" id="punc" checked> punctuation
+    or, that is: 
+    <input type="radio" name="s1" value="" id="norm" checked> normalized
+</form></span>  
+
+<p><span class="opt"> Use Markov Chains length (searches for 'x' following words):</span></p>
+<form><span class="opt2">
+    <input type="radio" name="l1" value="1" id="l1" checked> 1,  
+    <input type="radio" name="l1" value="2" id="l2" checked> 2, 
+    <input type="radio" name="l1" value="3" id="l3" checked> 3, 
+    <input type="radio" name="l1" value="4" id="l4" checked> 4, 
+    <input type="radio" name="l1" value="5" id="l5" checked> 5, 
+</form></span>  
+
+<p><span class="opt"> Words per line desired: </span></p>
+<form><span class="opt2">
+	<input type="radio" name="w1" value="3" id="w1" checked> 3,
+    <input type="radio" name="w1" value="6" id="w2" checked> 6,  
+    <input type="radio" name="w1" value="9" id="w3" checked> 9, 
+    <input type="radio" name="w1" value="12" id="w4" checked> 12, 
+    <input type="radio" name="w1" value="10" id="w5" checked> You choose, 
+</form></span>  
+
+
+<p><span class="opt"> Number of lines desired: </span></p>
+<form><span class="opt2">
+	<input type="radio" name="t1" value="3" id="t1" checked> 3,
+    <input type="radio" name="t1" value="6" id="t2" checked> 6,  
+    <input type="radio" name="t1" value="9" id="t3" checked> 9, 
+    <input type="radio" name="t1" value="12" id="t4" checked> 12, 
+    <input type="radio" name="t1" value="10" id="t5" checked> You choose, 
+</form></span>  
+
+<button type="button" onclick="loadDoc()">Poem Me!</button>
+
+<p id="poetry"></p>
+
+<script>
+
+// set up my inputs to grab from the radio buttons 
+var punc;
+var marChain=0;
+var wordsChain=0;
+var poemLength=0;
+
+// set up data/strings to grab from web file
+
+var debate='';
+
+function loadDoc() {
+    var xhttp = new XMLHttpRequest();// 
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            console.log(this.responseText);
+            debate=this.responseText; //-----------------------we've got the reference text--------------------------------
+
+            // check inputs for variables----------------------------------------------
+				if (document.getElementById('punc').checked) {
+				  punc = document.getElementById('punc').value;
+				} else if (document.getElementById('norm').checked) {
+				  punc = false;
+				};
+
+				if (document.getElementById('l1').checked) {
+				  marChain = document.getElementById('l1').value;
+				} else if (document.getElementById('l2').checked) {
+				  marChain = document.getElementById('l2').value;
+				} else if (document.getElementById('l3').checked) {
+				  marChain = document.getElementById('l3').value;
+				} else if (document.getElementById('l4').checked) {
+				  marChain = document.getElementById('l4').value;
+				} else if (document.getElementById('l5').checked) {
+				  marChain = document.getElementById('l5').value;
+				};
+
+				if (document.getElementById('w1').checked) {
+				  wordsChain = document.getElementById('w1').value;
+				} else if (document.getElementById('w2').checked) {
+				  wordsChain = document.getElementById('w2').value;
+				} else if (document.getElementById('w3').checked) {
+				  wordsChain = document.getElementById('w3').value;
+				} else if (document.getElementById('w4').checked) {
+				  wordsChain = document.getElementById('w4').value;
+				} else if (document.getElementById('w5').checked) {
+				  wordsChain = document.getElementById('w5').value;
+				};
+
+				if (document.getElementById('t1').checked) {
+				  poemLength = document.getElementById('t1').value;
+				} else if (document.getElementById('t2').checked) {
+				  poemLength = document.getElementById('t2').value;
+				} else if (document.getElementById('t3').checked) {
+				  poemLength = document.getElementById('t3').value;
+				} else if (document.getElementById('t4').checked) {
+				  poemLength = document.getElementById('t4').value;
+				} else if (document.getElementById('t5').checked) {
+				  poemLength = document.getElementById('t5').value;
+				};
+
+
+            console.log(punc, marChain, wordsChain, poemLength);// these should be fed into the final equation.
+
+
+//-----------------------------------REPLIT SERIES START HERE----------------------------------------------------------------------
+
+		function strArr(str, punc){
+			// first step is to capture everything that is punctuation mostly . , ; etc. and replace with ''
+			// the variation being to leave the possessive and word-hyphenated forms
+			
+			regex = /\.|\:|\;|\,|\?|\(|\)|\—|\“|\”|\$|\d|\»/g; // this is all the punctation formated;
+				var nonPstr = str.replace(regex, '');
+				//console.log(nonPstr);// works, clean but with 's, etc.
+				
+			//common variants
+			var regll=new RegExp(/(?:’ll)/g); //I'll to I will
+			var regm=new RegExp(/(?:’m)/g); //I'm to I am
+			var regwt=new RegExp(/(?:won’t)/g); // won't to will not
+			var regnt=new RegExp(/(?:n’t)/g); // don't to do not, others?
+			var regre= new RegExp(/(?:’re)/g); //'re to are
+			var regve= new RegExp(/(?:’ve)/g); //'ve to have
+				var nonPst = nonPstr.replace(regll, ' will').replace(regm, ' am').replace(regwt, 'will not').replace(regnt, ' not').replace(regre, ' are').replace(regve, ' have');
+				//console.log(nonPst);
+				
+			// 's is tricky... posessive - leave alone vs. it's, It's, what's, What's,That's, that's	she's you've
+			var regI=new RegExp(/(?:it’s)|(?:It’s)/g);
+			var regW=new RegExp(/(?:what’s)|(?:What’s)/g);
+			var regT=new RegExp(/(?:that’s)|(?:That’s)/g);
+			var regTh=new RegExp(/(?:there’s)|(?:There’s)/g);
+			var regSh=new RegExp(/(?:she’s)|(?:She’s)/g);
+				var newStr = nonPst.replace(regI, 'it is').replace(regW, 'what is').replace(regT, 'that is').replace(regTh, 'there is').replace(regSh, 'she is');
+				//console.log(newStr); // CLEAN (minus 's possessive)... ready to split!
+				
+			var words=[];
+			if (punc){
+				str.split(' ').forEach(function(word){
+					words.push(word.trim()); // eliminate white space
+				});
+			} else {
+				newStr.split(' ').forEach(function(word){
+					words.push(word.trim()); // eliminate white space
+				});
+			}
+			
+			return words; // ALL THE THINGS!
+			
+		}
+
+/* ---------------------------------------------------MARKOV HERE--------------------------------------------------------------
+
+A Markov Chain is a stochastic model of all possible states in a system, where each state is predicated on the previous state.
+
+*/
+
+
+		function markov(arr,chainNum){
+
+			
+			var unique=[];
+			var chain={};// this is easier to randomize later if the structure is array [{a:[b,c]},{}] instead of {a:[b,c], b:...} in terms of Math.random.
+			var pairs=[];
+			
+			arr.forEach(function(entry){
+				
+				if (unique.indexOf(entry) < 0){
+					unique.push(entry);
+						}
+					}); // great so we have the unique list
+			
+			console.log('initial array: '+arr.length+', unique array: '+unique.length);
+			
+			//so... we could loop through the unique entries, their index value and push the words that follow them (i+1) into an array
+			unique.forEach(function(uniq){
+				var term=[]; // sets their particular array
+
+
+				var idx = arr.indexOf(uniq); //----------------------------------------finding all matches----------------
+				while (idx != -1) {
+					// the length of push variable should now work with chainNum
+					var tempStr=''
+					for (var i=0; i<chainNum;i++){
+						tempStr+=" "+arr[idx+1+i];
+					}
+				  term.push(tempStr);
+				  
+				  idx = arr.indexOf(uniq, idx + 1); // iterate up to test futher up the array
+				} // this should push all those values into the term array-------------------------------------------------
+				
+				// term seems to be holding alot of repeat terms... so run another reduction to find the unique terms that follow....
+				var term2=[];
+				
+					term.forEach(function(thing){						
+						if (term2.indexOf(thing) < 0 && thing !==''){ // catch any strays
+							term2.push(thing);
+						}
+					});
+				
+				
+				chain[uniq]=term2;
+				pairs.push(chain);
+				term2=[];
+				chain={};// clear that out... to restart the action
+			});
+			
+			//console.log(pairs); 
+			return(pairs); 
+			
+		}
+
+/* --------------------------------------WRITE LINES HERE--------------------------------------------------
+
+Create a function writeLine() that takes a length of words n and returns a line of poetry.
+*/
+
+		function writeLine(objArr, n, l, chNum){
+			var linesHold=''; //array to hold lines... push to after concatenating...
+
+
+			function helper(inh, cnt, lineStr){ //inherited from last round...
+				var keyWord=String(Object.keys(inh)[0]);
+				
+				if (cnt>=n){ //--------------base-case, full line length------------------------
+					// with longer markov chain lengths, actually need to doublecheck lengths, edit down because word chunks so long.
+						if (lineStr.split(' ').length>n){
+							var long=lineStr.split(' ').slice(0,n);
+							str2='';
+							long.forEach(function(word){
+								str2+=word+" ";
+							});
+							lineStr=str2;
+						}
+					return lineStr; // returned full concat to writeLine
+					
+				} else {//-------------------String building recursions--------------------------
+					if (inh[keyWord].length === 1){ //single entry in array----------------------
+							if (cnt===1){ // first round only.
+								lineStr=keyWord+inh[keyWord][0];
+							} else { //all other iterations
+								lineStr+=inh[keyWord][0];
+							}// so string is updated/concatenated
+						cnt+=inh[keyWord][0].split(' ').length-1; // up the counter for n comparison
+						console.log(cnt);
+						var inhNew=objArr.filter(function(eachObj){
+							return Object.keys(eachObj)[0]===inh[keyWord][0].split(' ')[chNum];
+							});
+						return helper(inhNew[0], cnt, lineStr);
+
+					} else if (inh[keyWord].length > 1){ //multiple matches... pick random--------
+						var ran=Math.floor(Math.random()*inh[keyWord].length);
+							if (cnt===1){ // first round only
+								lineStr=keyWord+inh[keyWord][ran];
+							} else { //all other iterations
+								lineStr+=inh[keyWord][ran];
+							}// so string is updated/concatenated
+						cnt+=inh[keyWord][0].split(' ').length-1; // up the counter for n comparison
+						var inhNew2=objArr.filter(function(eachObj){
+							return Object.keys(eachObj)[0]===inh[keyWord][ran].split(' ')[chNum];
+							});
+						return helper(inhNew2[0], cnt, lineStr);
+
+					} // all other cases... do nothing... use the counter to force another round
+				} //closes out the recursive else-----------------------------------------------
+			
+			} // closes helper function---------------------------------------------------------
+			
+			//how many lines of poem do we want? pass in a variable 'l'
+			
+			for (var i=0;i<l;i++){
+				var start=objArr[(Math.floor(Math.random()*objArr.length))]; // could do this in helper... but the | is sticky... work out later
+				//console.log(start);
+				linesHold+=helper(start,1,'')[0].toUpperCase()+helper(start,1,'').slice(1) +"<br>";	
+			}
+
+			return linesHold; // pushes out the poem
+			
+		}
+
+//----------------------------NOW CALL TO HTML AND PASS IT THE NESTED FUNCTIONS------------------------------------------------
+
+
+            document.getElementById("poetry").innerHTML = writeLine(markov(strArr(debate, punc), marChain), wordsChain, poemLength, marChain);//functions execute here;
+
+        } else {
+        	console.log (this.status);
+        }
+    };
+    xhttp.open("GET", "http://www.siteations.com/files/Debate_transcript.txt", true);
+    xhttp.send();
+}
+
+//loadDoc();
+//console.log(debate);
+
+</script>
+
+</body>
+</html>
